@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VetGroom Pro - Agendamiento de Peluquería Veterinaria</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js for Reports -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="h-full flex flex-col text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
+
+    <!-- NAVIGATION BAR -->
+    <header class="sticky top-0 z-40 bg-white/90 dark:bg-slate-800/90 backdrop-blur border-b border-slate-200 dark:border-slate-700 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Brand Logo -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white">
+                    <i class="fa-solid fa-scissors text-lg"></i>
+                </div>
+                <div>
+                    <span class="font-extrabold text-lg tracking-tight bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">VetGroom Pro</span>
+                    <span class="block text-[10px] font-semibold tracking-wider text-slate-400 uppercase">Estética & Peluquería</span>
+                </div>
+            </div>
+
+            <!-- Top Actions -->
+            <div class="flex items-center gap-3">
+                <!-- Cloud Sync Status Badge (Click opens diagnostic modal) -->
+                <button id="cloudSyncBadge" onclick="window.openCloudModal()" title="Gestionar y verificar conexión en la nube" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs font-bold text-slate-700 dark:text-slate-300 hover:scale-105 transition cursor-pointer">
+                    <span id="cloudSyncDot" class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span id="cloudSyncText">Conectando...</span>
+                    <i class="fa-solid fa-cloud text-[11px] ml-0.5 opacity-70"></i>
+                </button>
+
+                <!-- Mode Switch (Client vs Admin View) -->
+                <div class="hidden sm:flex bg-slate-100 dark:bg-slate-700 p-1 rounded-xl">
+                    <button id="viewBtnClient" onclick="window.switchView('client')" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm">
+                        <i class="fa-solid fa-calendar-plus mr-1.5"></i><span data-i18n="navClient">Cliente</span>
+                    </button>
+                    <button id="viewBtnAdmin" onclick="window.switchView('admin')" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all text-slate-600 dark:text-slate-300 hover:text-emerald-600">
+                        <i class="fa-solid fa-user-shield mr-1.5"></i><span data-i18n="navAdmin">Administrador</span>
+                    </button>
+                </div>
+
+                <!-- Language Selector -->
+                <div class="relative">
+                    <select id="langSelect" onchange="window.changeLanguage(this.value)" class="bg-slate-100 dark:bg-slate-700 border-none rounded-xl text-xs font-semibold px-2.5 py-1.5 focus:ring-2 focus:ring-emerald-500 cursor-pointer">
+                        <option value="es">🇪🇸 ES</option>
+                        <option value="en">🇺🇸 EN</option>
+                    </select>
+                </div>
+
+                <!-- Theme Toggle -->
+                <button onclick="window.toggleMode()" class="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition">
+                    <i class="fa-solid fa-moon dark:hidden"></i>
+                    <i class="fa-solid fa-sun hidden dark:block text-amber-400"></i>
+                </button>
+
+                <!-- Copy Booking Link Button -->
+                <button onclick="window.copyClientLink()" title="Copiar enlace único para sincronización" class="hidden md:flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 rounded-xl hover:bg-emerald-100 transition border border-emerald-200/50">
+                    <i class="fa-solid fa-link text-xs"></i>
+                    <span data-i18n="copyLink">Copiar Link Citas</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+        <!-- ========================================== -->
+        <!-- CLIENT BOOKING VIEW (PUBLIC LINK ACCESSIBLE) -->
+        <!-- ========================================== -->
+        <section id="clientView" class="space-y-6 max-w-3xl mx-auto transition-all duration-300">
+            <!-- Header Card -->
+            <div class="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-emerald-900/10 relative overflow-hidden">
+                <div class="absolute -right-10 -bottom-10 opacity-10 text-9xl">
+                    <i class="fa-solid fa-paw"></i>
+                </div>
+                <div class="relative z-10 max-w-xl">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/20 backdrop-blur mb-3">
+                        <i class="fa-solid fa-bolt text-amber-300"></i> Agendamiento Online Sincronizado
+                    </span>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight" data-i18n="heroTitle">Reserva la Sesión de Grooming para tu Mascota</h1>
+                    <p class="text-emerald-100 text-sm mt-2 font-medium" data-i18n="heroSubtitle">Atención profesional, baños relajantes y cortes estilizados en minutos.</p>
+                </div>
+            </div>
+
+            <!-- Booking Stepper -->
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-slate-200/80 dark:border-slate-700/80">
+                <!-- Step Indicators -->
+                <div class="flex items-center justify-between mb-8 pb-4 border-b border-slate-100 dark:border-slate-700">
+                    <div id="stepInd1" class="flex items-center gap-2 font-bold text-xs sm:text-sm text-emerald-600 dark:text-emerald-400">
+                        <span class="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-xs">1</span>
+                        <span data-i18n="step1">Datos</span>
+                    </div>
+                    <div class="h-0.5 flex-1 bg-slate-200 dark:bg-slate-700 mx-2"></div>
+                    <div id="stepInd2" class="flex items-center gap-2 font-semibold text-xs sm:text-sm text-slate-400">
+                        <span class="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xs">2</span>
+                        <span data-i18n="step2">Servicio</span>
+                    </div>
+                    <div class="h-0.5 flex-1 bg-slate-200 dark:bg-slate-700 mx-2"></div>
+                    <div id="stepInd3" class="flex items-center gap-2 font-semibold text-xs sm:text-sm text-slate-400">
+                        <span class="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xs">3</span>
+                        <span data-i18n="step3">Horario</span>
+                    </div>
+                </div>
+
+                <!-- STEP 1: CLIENT & PET DATA -->
+                <div id="stepContent1" class="space-y-5">
+                    <h2 class="text-lg font-bold flex items-center gap-2 text-slate-800 dark:text-slate-100">
+                        <i class="fa-solid fa-user-pen text-emerald-500"></i>
+                        <span data-i18n="step1Header">Información del Tutor y la Mascota</span>
+                    </h2>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1" data-i18n="lblClientName">Nombre Completo del Tutor *</label>
+                            <input type="text" id="clientName" placeholder="Ej: María García" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1" data-i18n="lblClientPhone">Teléfono / WhatsApp *</label>
+                            <input type="tel" id="clientPhone" placeholder="Ej: +593 99 123 4567" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1" data-i18n="lblClientEmail">Correo Electrónico (Para confirmación)</label>
+                        <input type="email" id="clientEmail" placeholder="maria@ejemplo.com" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+
+                    <hr class="border-slate-100 dark:border-slate-700 my-4">
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1" data-i18n="lblPetName">Nombre de la Mascota *</label>
+                            <input type="text" id="petName" placeholder="Ej: Toby" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1" data-i18n="lblPetType">Especie / Tipo *</label>
+                            <select id="petType" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                                <option value="Perro">🐶 Perro</option>
+                                <option value="Gato">🐱 Gato</option>
+                                <option value="Otro">🐰 Otro</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1" data-i18n="lblPetWeight">Peso aprox. (kg) *</label>
+                            <input type="number" step="0.1" id="petWeight" placeholder="Ej: 8.5" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1" data-i18n="lblPetAge">Edad de la mascota</label>
+                            <input type="text" id="petAge" placeholder="Ej: 3 años / 6 meses" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1" data-i18n="lblPetNotes">Alergias o notas de comportamiento</label>
+                            <input type="text" id="petNotes" placeholder="Ej: Nervioso con las secadoras, alergia a fragancias" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div class="pt-4 flex justify-end">
+                        <button type="button" onclick="window.goToStep(2)" class="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition">
+                            <span data-i18n="btnNext">Siguiente: Seleccionar Servicio</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 2: SERVICE SELECTION -->
+                <div id="stepContent2" class="space-y-5 hidden">
+                    <h2 class="text-lg font-bold flex items-center gap-2 text-slate-800 dark:text-slate-100">
+                        <i class="fa-solid fa-shower text-emerald-500"></i>
+                        <span data-i18n="step2Header">Selecciona el Servicio de Grooming</span>
+                    </h2>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="servicesGrid">
+                        <!-- Dynamic Services cards -->
+                    </div>
+
+                    <div class="pt-4 flex justify-between">
+                        <button type="button" onclick="window.goToStep(1)" class="px-5 py-2.5 rounded-2xl border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-semibold text-xs sm:text-sm flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+                            <i class="fa-solid fa-arrow-left"></i>
+                            <span data-i18n="btnBack">Atrás</span>
+                        </button>
+                        <button type="button" onclick="window.goToStep(3)" class="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition">
+                            <span data-i18n="btnNextStep3">Siguiente: Seleccionar Fecha y Hora</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 3: DATE & TIME SELECTION -->
+                <div id="stepContent3" class="space-y-5 hidden">
+                    <h2 class="text-lg font-bold flex items-center gap-2 text-slate-800 dark:text-slate-100">
+                        <i class="fa-solid fa-clock text-emerald-500"></i>
+                        <span data-i18n="step3Header">Disponibilidad en Tiempo Real</span>
+                    </h2>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1" data-i18n="lblSelectDate">Selecciona la Fecha *</label>
+                            <input type="date" id="bookingDate" onchange="window.updateTimeSlots()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <p class="text-[11px] text-slate-400 mt-1" data-i18n="dateNote">Horario de atención: Lunes a Sábado (09:00 - 18:00)</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1" data-i18n="lblSelectTime">Horarios Disponibles *</label>
+                            <div id="timeSlotsContainer" class="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1">
+                                <!-- Dynamic slots -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="selectedTime">
+
+                    <div class="pt-4 flex justify-between">
+                        <button type="button" onclick="window.goToStep(2)" class="px-5 py-2.5 rounded-2xl border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-semibold text-xs sm:text-sm flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+                            <i class="fa-solid fa-arrow-left"></i>
+                            <span data-i18n="btnBack">Atrás</span>
+                        </button>
+                        <button type="button" onclick="window.handleBookingSubmit()" class="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-sm flex items-center gap-2 shadow-xl shadow-emerald-600/30 transition transform hover:-translate-y-0.5">
+                            <i class="fa-solid fa-check-circle text-base"></i>
+                            <span data-i18n="btnConfirmBooking">Confirmar y Agendar Cita</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- BOOKING CONFIRMATION VIEW -->
+        <section id="confirmationView" class="hidden max-w-xl mx-auto space-y-6">
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-2xl border border-emerald-100 dark:border-emerald-900/30 text-center relative overflow-hidden">
+                <div class="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 animate-bounce">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <h2 class="text-2xl font-black text-slate-800 dark:text-slate-100" data-i18n="confTitle">¡Cita Confirmada con Éxito!</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1" data-i18n="confSubtitle">Se ha registrado tu cita en tiempo real en nuestra agenda de peluquería.</p>
+
+                <!-- Receipt Box -->
+                <div class="bg-slate-50 dark:bg-slate-700/50 rounded-2xl p-5 my-6 border border-slate-200/60 dark:border-slate-600 text-left space-y-3 text-xs sm:text-sm">
+                    <div class="flex justify-between items-center pb-2 border-b border-slate-200 dark:border-slate-600">
+                        <span class="text-slate-400 font-semibold" data-i18n="confCode">Código de Reserva:</span>
+                        <span id="recCode" class="font-extrabold text-emerald-600 dark:text-emerald-400">#VET-8839</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-500 dark:text-slate-300" data-i18n="confOwner">Tutor:</span>
+                        <span id="recOwner" class="font-bold text-slate-800 dark:text-slate-100">María García</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-500 dark:text-slate-300" data-i18n="confPet">Mascota:</span>
+                        <span id="recPet" class="font-bold text-slate-800 dark:text-slate-100">Toby (Perro)</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-500 dark:text-slate-300" data-i18n="confService">Servicio:</span>
+                        <span id="recService" class="font-bold text-slate-800 dark:text-slate-100">Corte & Estilo Pro</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-500 dark:text-slate-300" data-i18n="confDateTime">Fecha & Hora:</span>
+                        <span id="recDateTime" class="font-bold text-emerald-600 dark:text-emerald-400">2026-09-21 @ 10:00 AM</span>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button onclick="window.downloadCalendarEvent()" class="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center justify-center gap-2 transition">
+                        <i class="fa-solid fa-calendar-plus text-emerald-500"></i>
+                        <span data-i18n="btnAddCalendar">Añadir a mi Calendario</span>
+                    </button>
+                    <button onclick="window.shareWhatsAppReminder()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-600/20">
+                        <i class="fa-brands fa-whatsapp text-sm"></i>
+                        <span data-i18n="btnWspReminder">Recordatorio por WhatsApp</span>
+                    </button>
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700">
+                    <button onclick="window.resetBookingForm()" class="text-xs font-semibold text-emerald-600 hover:underline">
+                        <i class="fa-solid fa-rotate-left mr-1"></i> <span data-i18n="btnNewBooking">Agendar otra cita</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- ADMIN DASHBOARD VIEW (PROTECTED ACCESS) -->
+        <!-- ========================================== -->
+        <section id="adminView" class="hidden space-y-6">
+            <!-- Login Modal Overlay if not authenticated -->
+            <div id="adminAuthOverlay" class="bg-slate-900/80 backdrop-blur-md fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div class="bg-white dark:bg-slate-800 rounded-3xl p-8 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-700 text-center space-y-5">
+                    <div class="w-14 h-14 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 rounded-2xl flex items-center justify-center text-2xl mx-auto">
+                        <i class="fa-solid fa-lock"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-extrabold text-slate-800 dark:text-slate-100" data-i18n="adminLoginTitle">Acceso Administrativo</h3>
+                        <p class="text-xs text-slate-400 mt-1" data-i18n="adminLoginSubtitle">Ingrese la clave de administrador para gestionar las citas</p>
+                    </div>
+
+                    <form onsubmit="window.handleAdminLogin(event)" class="space-y-4">
+                        <div>
+                            <input type="password" id="adminPassword" placeholder="Contraseña (Demo: admin123)" required class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        </div>
+                        <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-600/20 transition">
+                            <span data-i18n="btnLogin">Iniciar Sesión</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Admin Header KPIs -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl font-bold">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+                    <div>
+                        <span class="block text-xs font-semibold text-slate-400" data-i18n="kpiTotal">Citas Totales</span>
+                        <span id="kpiTotalNum" class="text-xl font-extrabold text-slate-800 dark:text-slate-100">0</span>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl font-bold">
+                        <i class="fa-solid fa-clock text-xl"></i>
+                    </div>
+                    <div>
+                        <span class="block text-xs font-semibold text-slate-400" data-i18n="kpiPending">Pendientes</span>
+                        <span id="kpiPendingNum" class="text-xl font-extrabold text-slate-800 dark:text-slate-100">0</span>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl font-bold">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                    <div>
+                        <span class="block text-xs font-semibold text-slate-400" data-i18n="kpiConfirmed">Confirmadas</span>
+                        <span id="kpiConfirmedNum" class="text-xl font-extrabold text-slate-800 dark:text-slate-100">0</span>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 flex items-center justify-center text-xl font-bold">
+                        <i class="fa-solid fa-sack-dollar"></i>
+                    </div>
+                    <div>
+                        <span class="block text-xs font-semibold text-slate-400" data-i18n="kpiRevenue">Ingresos Est.</span>
+                        <span id="kpiRevenueNum" class="text-xl font-extrabold text-slate-800 dark:text-slate-100">$0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Navigation Tabs -->
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
+                <div class="flex gap-2">
+                    <button onclick="window.switchAdminTab('agenda')" id="tabAgenda" class="px-4 py-2 rounded-xl text-xs font-bold transition bg-emerald-600 text-white shadow-md">
+                        <i class="fa-solid fa-list-check mr-1.5"></i> <span data-i18n="tabAgenda">Agenda de Citas</span>
+                    </button>
+                    <button onclick="window.switchAdminTab('mascotas')" id="tabMascotas" class="px-4 py-2 rounded-xl text-xs font-bold transition text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <i class="fa-solid fa-paw mr-1.5"></i> <span data-i18n="tabMascotas">Historial de Mascotas</span>
+                    </button>
+                    <button onclick="window.switchAdminTab('reportes')" id="tabReportes" class="px-4 py-2 rounded-xl text-xs font-bold transition text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <i class="fa-solid fa-chart-line mr-1.5"></i> <span data-i18n="tabReportes">Reportes</span>
+                    </button>
+                    <button onclick="window.switchAdminTab('config')" id="tabConfig" class="px-4 py-2 rounded-xl text-xs font-bold transition text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <i class="fa-solid fa-gears mr-1.5"></i> <span data-i18n="tabConfig">Respaldo & Nube</span>
+                    </button>
+                </div>
+
+                <button onclick="window.logoutAdmin()" class="px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition">
+                    <i class="fa-solid fa-right-from-bracket mr-1"></i> <span data-i18n="btnLogout">Cerrar Sesión</span>
+                </button>
+            </div>
+
+            <!-- TAB 1: AGENDA TABLE -->
+            <div id="adminTabContentAgenda" class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-xl space-y-4">
+                <!-- Filters Bar -->
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 dark:bg-slate-700/40 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-700">
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <i class="fa-solid fa-filter text-slate-400 text-xs"></i>
+                        <select id="filterStatus" onchange="window.renderAdminTable()" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-xs rounded-xl px-3 py-2 font-semibold">
+                            <option value="ALL">Todos los Estados</option>
+                            <option value="Pendiente">Pendientes</option>
+                            <option value="Confirmada">Confirmadas</option>
+                            <option value="Completada">Completadas</option>
+                            <option value="Cancelada">Canceladas</option>
+                        </select>
+
+                        <input type="date" id="filterDate" onchange="window.renderAdminTable()" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-xs rounded-xl px-3 py-2 font-semibold">
+                        <button onclick="window.clearDateFilter()" class="text-xs font-semibold text-slate-400 hover:text-slate-600">Limpiar</button>
+                    </div>
+
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <button onclick="window.forceCloudSync()" title="Recargar desde la nube" class="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-arrows-rotate"></i> Actualizar
+                        </button>
+                        <input type="text" id="adminSearch" oninput="window.renderAdminTable()" placeholder="Buscar cliente o mascota..." class="w-full sm:w-60 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-xs rounded-xl px-3.5 py-2">
+                        <button onclick="window.exportAppointmentsCSV()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-file-csv"></i> Exportar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-100 dark:bg-slate-700/80 text-slate-500 uppercase font-bold text-[10px] tracking-wider">
+                            <tr>
+                                <th class="p-3.5">Código / Cita</th>
+                                <th class="p-3.5">Tutor / Contacto</th>
+                                <th class="p-3.5">Mascota & Peso</th>
+                                <th class="p-3.5">Servicio / Precio</th>
+                                <th class="p-3.5">Estado</th>
+                                <th class="p-3.5 text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminTableBody" class="divide-y divide-slate-100 dark:divide-slate-700/60 font-medium">
+                            <!-- Dynamic Table Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 2: PET HISTORY -->
+            <div id="adminTabContentMascotas" class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-xl space-y-4 hidden">
+                <h3 class="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-book-medical text-emerald-500"></i> Expedientes e Historial de Mascotas
+                </h3>
+                <p class="text-xs text-slate-400">Consolidado automático de sesiones de peluquería previas ordenadas por mascota.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="petHistoryGrid">
+                    <!-- Dynamic Pet History Cards -->
+                </div>
+            </div>
+
+            <!-- TAB 3: REPORTS -->
+            <div id="adminTabContentReportes" class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-xl space-y-6 hidden">
+                <h3 class="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-emerald-500"></i> Métricas e Informes de Demanda
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="p-4 bg-slate-50 dark:bg-slate-700/40 rounded-2xl border border-slate-100 dark:border-slate-700">
+                        <h4 class="text-xs font-bold text-slate-500 mb-4">Servicios Más Solicitados</h4>
+                        <canvas id="chartServices" class="max-h-56"></canvas>
+                    </div>
+                    <div class="p-4 bg-slate-50 dark:bg-slate-700/40 rounded-2xl border border-slate-100 dark:border-slate-700">
+                        <h4 class="text-xs font-bold text-slate-500 mb-4">Distribución por Tipo de Mascota</h4>
+                        <canvas id="chartPets" class="max-h-56"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: BACKUP & CLOUD CONFIG -->
+            <div id="adminTabContentConfig" class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-xl space-y-5 hidden">
+                <h3 class="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-up text-emerald-500"></i> Respaldo de Datos & Sincronización Multi-Dispositivo
+                </h3>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="p-5 bg-slate-50 dark:bg-slate-700/40 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-3">
+                        <h4 class="text-xs font-bold text-slate-700 dark:text-slate-200">Copia de Seguridad JSON</h4>
+                        <p class="text-xs text-slate-400">Descarga un respaldo local con todas las citas registradas.</p>
+                        <button onclick="window.downloadJSONBackup()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition flex items-center gap-2">
+                            <i class="fa-solid fa-download"></i> Descargar JSON Backup
+                        </button>
+                    </div>
+
+                    <div class="p-5 bg-slate-50 dark:bg-slate-700/40 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-3">
+                        <h4 class="text-xs font-bold text-slate-700 dark:text-slate-200">Restaurar Citas de Demostración</h4>
+                        <p class="text-xs text-slate-400">Restablece o incluye citas de prueba (incluye agendamiento de Lunes).</p>
+                        <button onclick="window.restoreDemoData()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2">
+                            <i class="fa-solid fa-rotate"></i> Cargar Datos Demo
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- CLOUD CONFIG & DIAGNOSTIC MODAL -->
+    <div id="cloudModal" class="hidden fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-700 space-y-5 relative">
+            <button onclick="window.closeCloudModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-cloud-bolt"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-extrabold text-slate-800 dark:text-slate-100">Estado de Sincronización en la Nube</h3>
+                    <p class="text-xs text-slate-400">Diagnóstico de conexión multiplataforma (Celular ↔ Computadora)</p>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-700/40 border border-slate-200/80 dark:border-slate-600 space-y-2 text-xs">
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-500 dark:text-slate-400">Estado de Red:</span>
+                    <span id="modalNetStatus" class="font-bold text-emerald-600">Conectado a Internet</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-500 dark:text-slate-400">Modo de Nube:</span>
+                    <span id="modalCloudMode" class="font-bold text-slate-700 dark:text-slate-200">Verificando...</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-500 dark:text-slate-400">ID de Negocio / Canal:</span>
+                    <span id="modalAppId" class="font-extrabold text-emerald-600 font-mono">vetgroom-pro-default</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-500 dark:text-slate-400">Citas en Memoria:</span>
+                    <span id="modalApptCount" class="font-bold text-slate-700 dark:text-slate-200">0</span>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">
+                    Cambiar ID de Negocio / Peluquería
+                </label>
+                <p class="text-[11px] text-slate-400">Usa el mismo ID en el celular y en la computadora para sincronizar exactamente la misma agenda.</p>
+                <div class="flex gap-2">
+                    <input type="text" id="inputBusinessId" placeholder="Ej: mi-peluqueria-01" class="flex-1 px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-xs font-mono font-bold focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    <button onclick="window.updateBusinessId()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition">
+                        Guardar & Conectar
+                    </button>
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row gap-2 justify-end">
+                <button onclick="window.forceCloudSync()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-2 transition">
+                    <i class="fa-solid fa-rotate"></i> Forzar Reconexión Ahora
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CUSTOM TOAST NOTIFICATION CONTAINER -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- JAVASCRIPT APP LOGIC WITH MULTI-DEVICE CLOUD SYNC & LOCAL FALLBACK RELAY -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, updateDoc, collection, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Catalogs & Consts
+        const SERVICES = [
+            { id: 'corte_estilo', title: 'Corte & Estilo Pro', price: 25.00, duration: '45 - 60 min', icon: 'fa-scissors', desc: 'Corte higiénico o de raza, baño con shampoo hipoalergénico, secado y cepillado.' },
+            { id: 'bano_relajante', title: 'Baño Spa Relajante', price: 15.00, duration: '30 - 45 min', icon: 'fa-shower', desc: 'Baño profundo, limpieza de oídos, corte de uñas y vaciado de glándulas.' },
+            { id: 'grooming_vip', title: 'Grooming VIP Completo', price: 35.00, duration: '60 - 90 min', icon: 'fa-crown', desc: 'Servicio premium: baño spa, corte estilizado, tratamiento de manto y perfume.' },
+            { id: 'desparasitacion', title: 'Desparasitación & Baño', price: 20.00, duration: '30 - 45 min', icon: 'fa-shield-dog', desc: 'Tratamiento antipulgas y garrapatas más baño medicinal completado.' }
+        ];
+
+        // Demo Initial appointments (Includes Monday test appointment)
+        const DEMO_APPOINTMENTS = [
+            {
+                id: 'VET-1024',
+                clientName: 'Ana Martínez',
+                clientPhone: '+593 99 876 5432',
+                clientEmail: 'ana@example.com',
+                petName: 'Luna',
+                petType: 'Perro',
+                petWeight: 6.5,
+                petAge: '2 años',
+                serviceId: 'corte_estilo',
+                serviceTitle: 'Corte & Estilo Pro',
+                price: 25.00,
+                date: '2026-09-21', // Monday
+                time: '10:00 AM',
+                status: 'Confirmada',
+                notes: 'Cita de prueba para el día lunes',
+                createdAt: new Date().toISOString()
+            },
+            {
+                id: 'VET-1025',
+                clientName: 'Carlos López',
+                clientPhone: '+593 98 765 4321',
+                clientEmail: 'carlos@example.com',
+                petName: 'Mishi',
+                petType: 'Gato',
+                petWeight: 4.0,
+                petAge: '3 años',
+                serviceId: 'bano_relajante',
+                serviceTitle: 'Baño Spa Relajante',
+                price: 15.00,
+                date: '2026-09-21', // Monday
+                time: '11:00 AM',
+                status: 'Pendiente',
+                notes: 'Gatito reservado para el lunes',
+                createdAt: new Date().toISOString()
+            }
+        ];
+
+        // Business / App Channel ID Logic
+        const urlParams = new URLSearchParams(window.location.search);
+        let appId = urlParams.get('appId') || localStorage.getItem('vetgroom_business_id') || (typeof __app_id !== 'undefined' ? __app_id : 'vetgroom-pro-default');
+
+        // Save current Business ID
+        localStorage.setItem('vetgroom_business_id', appId);
+
+        // Firebase Configuration Setup
+        const isExternalDevice = typeof __firebase_config === 'undefined';
+        const firebaseConfig = !isExternalDevice ? JSON.parse(__firebase_config) : {
+            apiKey: "demo-api-key",
+            authDomain: "demo-app.firebaseapp.com",
+            projectId: "demo-app",
+            storageBucket: "demo-app.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:demo"
+        };
+
+        let app = null;
+        let auth = null;
+        let db = null;
+        let isFirebaseAvailable = false;
+
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            isFirebaseAvailable = !isExternalDevice;
+        } catch (e) {
+            console.warn("Firebase config error:", e);
+        }
+
+        let currentUser = null;
+        let appointments = [];
+        let selectedService = SERVICES[0];
+        let selectedTimeSlot = '';
+        let activeAdminTab = 'agenda';
+        let isAdminLoggedIn = false;
+        let currentLang = 'es';
+
+        // Local Tab-to-Tab BroadcastChannel Relay
+        const broadcastChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(`vetgroom_channel_${appId}`) : null;
+
+        if (broadcastChannel) {
+            broadcastChannel.onmessage = (event) => {
+                if (event.data && event.data.type === 'APPOINTMENTS_UPDATED') {
+                    appointments = event.data.appointments;
+                    saveLocalAppointments(appointments);
+                    refreshAllUI();
+                }
+            };
+        }
+
+        const LOCAL_STORAGE_KEY = `vetgroom_appointments_${appId}`;
+
+        function getLocalAppointments() {
+            try {
+                const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+                return stored ? JSON.parse(stored) : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveLocalAppointments(data) {
+            try {
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+                if (broadcastChannel) {
+                    broadcastChannel.postMessage({ type: 'APPOINTMENTS_UPDATED', appointments: data });
+                }
+            } catch (e) {
+                console.error("Error writing localStorage", e);
+            }
+        }
+
+        function updateSyncStatusUI(isOnline, count = 0, label = '') {
+            const dot = document.getElementById('cloudSyncDot');
+            const text = document.getElementById('cloudSyncText');
+            if (!dot || !text) return;
+
+            if (isOnline) {
+                dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
+                text.innerText = label || `Nube Conectada (${count})`;
+            } else {
+                dot.className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse";
+                text.innerText = label || `Modo Sincro Local (${count})`;
+            }
+
+            const modalNetStatus = document.getElementById('modalNetStatus');
+            const modalCloudMode = document.getElementById('modalCloudMode');
+            const modalAppId = document.getElementById('modalAppId');
+            const modalApptCount = document.getElementById('modalApptCount');
+
+            if (modalNetStatus) modalNetStatus.innerText = navigator.onLine ? "Conectado a Internet" : "Sin Internet";
+            if (modalCloudMode) modalCloudMode.innerText = isOnline ? "Nube Firebase En Vivo" : "Nube Local / Broadcast Multitramo";
+            if (modalAppId) modalAppId.innerText = appId;
+            if (modalApptCount) modalApptCount.innerText = appointments.length;
+        }
+
+        function refreshAllUI() {
+            renderAdminTable();
+            renderKPIs();
+            renderPetHistory();
+            if (activeAdminTab === 'reportes') renderAnalyticsCharts();
+            updateTimeSlots();
+        }
+
+        async function initCloudAuthAndSync() {
+            const cached = getLocalAppointments();
+            if (cached.length > 0) {
+                appointments = cached;
+            } else {
+                appointments = [...DEMO_APPOINTMENTS];
+                saveLocalAppointments(appointments);
+            }
+            refreshAllUI();
+
+            if (!isFirebaseAvailable) {
+                updateSyncStatusUI(false, appointments.length, `Sincro Activa (${appointments.length})`);
+                return;
+            }
+
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    const userCredential = await signInWithCustomToken(auth, __initial_auth_token);
+                    currentUser = userCredential.user;
+                } else {
+                    const userCredential = await signInAnonymously(auth);
+                    currentUser = userCredential.user;
+                }
+            } catch (err) {
+                console.warn("Falló inicio de sesión con token, intentando anónimo:", err);
+                try {
+                    const userCredential = await signInAnonymously(auth);
+                    currentUser = userCredential.user;
+                } catch (e) {
+                    console.error("Error de autenticación:", e);
+                }
+            }
+
+            if (currentUser) {
+                updateSyncStatusUI(true, appointments.length);
+                syncPendingLocalAppointmentsToCloud();
+                subscribeRealtimeAppointments();
+            } else {
+                updateSyncStatusUI(false, appointments.length, `Sincro Activa (${appointments.length})`);
+            }
+        }
+
+        async function syncPendingLocalAppointmentsToCloud() {
+            if (!currentUser || !db) return;
+            const localList = getLocalAppointments();
+            for (const appt of localList) {
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'appointments', appt.id);
+                    await setDoc(docRef, appt, { merge: true });
+                } catch (e) {
+                    console.warn("Error enviando cita a la nube:", e);
+                }
+            }
+        }
+
+        function subscribeRealtimeAppointments() {
+            if (!currentUser || !db) return;
+
+            const apptsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'appointments');
+
+            onSnapshot(apptsColRef, (snapshot) => {
+                const fetched = [];
+                snapshot.forEach((docSnap) => {
+                    fetched.push({ id: docSnap.id, ...docSnap.data() });
+                });
+
+                fetched.sort((a, b) => new Date(b.createdAt || a.date) - new Date(a.createdAt || a.date));
+
+                if (fetched.length === 0 && !snapshot.metadata.fromCache && appointments.length === 0) {
+                    seedInitialDemoData();
+                    return;
+                }
+
+                if (fetched.length > 0) {
+                    appointments = fetched;
+                    saveLocalAppointments(appointments);
+                }
+
+                refreshAllUI();
+                updateSyncStatusUI(true, appointments.length);
+            }, (error) => {
+                console.error("Realtime sync error:", error);
+                updateSyncStatusUI(false, appointments.length, `Sincro Local (${appointments.length})`);
+            });
+        }
+
+        async function seedInitialDemoData() {
+            if (!currentUser || !db) return;
+            for (const demoAppt of DEMO_APPOINTMENTS) {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'appointments', demoAppt.id);
+                await setDoc(docRef, demoAppt);
+            }
+        }
+
+        async function forceCloudSync() {
+            showToast("Verificando y sincronizando datos...", "info");
+            
+            if (!currentUser || !db) {
+                await initCloudAuthAndSync();
+                showToast(`Agenda actualizada (${appointments.length} citas)`, "success");
+                return;
+            }
+
+            try {
+                const apptsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'appointments');
+                const snapshot = await getDocs(apptsColRef);
+                const fetched = [];
+                snapshot.forEach((docSnap) => {
+                    fetched.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                if (fetched.length > 0) {
+                    fetched.sort((a, b) => new Date(b.createdAt || a.date) - new Date(a.createdAt || a.date));
+                    appointments = fetched;
+                    saveLocalAppointments(appointments);
+                    refreshAllUI();
+                    showToast(`Sincronización con la nube exitosa (${appointments.length} citas)`, "success");
+                } else {
+                    syncPendingLocalAppointmentsToCloud();
+                    showToast("Sincronización enviada a la nube", "info");
+                }
+            } catch (err) {
+                console.error("Error forzando actualización:", err);
+                showToast("Conexión en modo local activo", "info");
+            }
+        }
+
+        function openCloudModal() {
+            const modal = document.getElementById('cloudModal');
+            const input = document.getElementById('inputBusinessId');
+            if (input) input.value = appId;
+            if (modal) modal.classList.remove('hidden');
+            updateSyncStatusUI(isFirebaseAvailable && currentUser !== null, appointments.length);
+        }
+
+        function closeCloudModal() {
+            const modal = document.getElementById('cloudModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function updateBusinessId() {
+            const input = document.getElementById('inputBusinessId');
+            if (!input) return;
+            const newId = input.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+            if (!newId) {
+                showToast("Ingresa un ID válido (ej: mi-peluqueria-01)", "error");
+                return;
+            }
+            appId = newId;
+            localStorage.setItem('vetgroom_business_id', appId);
+
+            // Update URL search parameter dynamically
+            const url = new URL(window.location.href);
+            url.searchParams.set('appId', appId);
+            window.history.replaceState({}, '', url.toString());
+
+            closeCloudModal();
+            showToast(`Conectado al canal: ${appId}`, "success");
+            initCloudAuthAndSync();
+        }
+
+        function copyClientLink() {
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('appId', appId);
+            const fullLink = currentUrl.toString();
+
+            const tempInput = document.createElement("input");
+            tempInput.value = fullLink;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+            showToast("¡Enlace único copiado! Ábrelo en cualquier celular para sincronizar.", "success");
+        }
+
+        function goToStep(step) {
+            if (step === 2) {
+                const name = document.getElementById('clientName').value.trim();
+                const phone = document.getElementById('clientPhone').value.trim();
+                const pet = document.getElementById('petName').value.trim();
+                const weight = document.getElementById('petWeight').value.trim();
+
+                if (!name || !phone || !pet || !weight) {
+                    showToast("Por favor completa los campos obligatorios del tutor y mascota (*)", "error");
+                    return;
+                }
+            }
+
+            if (step === 3 && !selectedService) {
+                showToast("Selecciona un servicio para continuar", "error");
+                return;
+            }
+
+            document.getElementById('stepContent1').classList.toggle('hidden', step !== 1);
+            document.getElementById('stepContent2').classList.toggle('hidden', step !== 2);
+            document.getElementById('stepContent3').classList.toggle('hidden', step !== 3);
+
+            const ind1 = document.getElementById('stepInd1');
+            const ind2 = document.getElementById('stepInd2');
+            const ind3 = document.getElementById('stepInd3');
+
+            ind1.className = step >= 1 ? "flex items-center gap-2 font-bold text-xs sm:text-sm text-emerald-600 dark:text-emerald-400" : "flex items-center gap-2 font-semibold text-xs sm:text-sm text-slate-400";
+            ind2.className = step >= 2 ? "flex items-center gap-2 font-bold text-xs sm:text-sm text-emerald-600 dark:text-emerald-400" : "flex items-center gap-2 font-semibold text-xs sm:text-sm text-slate-400";
+            ind3.className = step >= 3 ? "flex items-center gap-2 font-bold text-xs sm:text-sm text-emerald-600 dark:text-emerald-400" : "flex items-center gap-2 font-semibold text-xs sm:text-sm text-slate-400";
+        }
+
+        function setupMinDate() {
+            const dateInput = document.getElementById('bookingDate');
+            if (dateInput) {
+                const today = new Date().toISOString().split('T')[0];
+                dateInput.min = today;
+                dateInput.value = today;
+            }
+        }
+
+        function renderServiceCards() {
+            const grid = document.getElementById('servicesGrid');
+            if (!grid) return;
+            grid.innerHTML = SERVICES.map(srv => {
+                const isSelected = selectedService.id === srv.id;
+                return `
+                    <div onclick="window.selectService('${srv.id}')" class="cursor-pointer p-4 rounded-2xl border-2 transition-all ${isSelected ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 shadow-md' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'}">
+                        <div class="flex items-start justify-between">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-lg">
+                                <i class="fa-solid ${srv.icon}"></i>
+                            </div>
+                            <span class="text-sm font-extrabold text-emerald-600 dark:text-emerald-400">$${srv.price.toFixed(2)}</span>
+                        </div>
+                        <h4 class="font-bold text-sm text-slate-800 dark:text-slate-100 mt-3">${srv.title}</h4>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">${srv.desc}</p>
+                        <span class="inline-block text-[11px] font-semibold text-slate-400 mt-3"><i class="fa-solid fa-stopwatch mr-1"></i>${srv.duration}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectService(id) {
+            selectedService = SERVICES.find(s => s.id === id) || SERVICES[0];
+            renderServiceCards();
+        }
+
+        function updateTimeSlots() {
+            const dateInput = document.getElementById('bookingDate');
+            if (!dateInput) return;
+            const dateVal = dateInput.value;
+            const slotsContainer = document.getElementById('timeSlotsContainer');
+
+            const allSlots = ['09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM'];
+
+            const occupiedTimes = appointments
+                .filter(a => a.date === dateVal && a.status !== 'Cancelada')
+                .map(a => a.time);
+
+            slotsContainer.innerHTML = allSlots.map(time => {
+                const isTaken = occupiedTimes.includes(time);
+                const isSelected = selectedTimeSlot === time;
+
+                if (isTaken) {
+                    return `
+                        <button type="button" disabled class="py-2 px-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-400 text-xs font-semibold cursor-not-allowed line-through">
+                            ${time}
+                        </button>
+                    `;
+                }
+
+                return `
+                    <button type="button" onclick="window.selectTime('${time}')" class="py-2 px-2.5 rounded-xl border text-xs font-bold transition ${isSelected ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-emerald-500 text-slate-700 dark:text-slate-200'}">
+                        ${time}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function selectTime(time) {
+            selectedTimeSlot = time;
+            document.getElementById('selectedTime').value = time;
+            updateTimeSlots();
+        }
+
+        async function handleBookingSubmit() {
+            const dateVal = document.getElementById('bookingDate').value;
+
+            if (!selectedTimeSlot) {
+                showToast("Por favor selecciona un horario disponible para la cita", "error");
+                return;
+            }
+
+            const srv = selectedService;
+            const newAppt = {
+                id: `VET-${Math.floor(1000 + Math.random() * 9000)}`,
+                clientName: document.getElementById('clientName').value.trim(),
+                clientPhone: document.getElementById('clientPhone').value.trim(),
+                clientEmail: document.getElementById('clientEmail').value.trim(),
+                petName: document.getElementById('petName').value.trim(),
+                petType: document.getElementById('petType').value,
+                petWeight: parseFloat(document.getElementById('petWeight').value) || 0,
+                petAge: document.getElementById('petAge').value.trim() || 'No especificada',
+                serviceId: srv.id,
+                serviceTitle: srv.title,
+                price: srv.price,
+                date: dateVal,
+                time: selectedTimeSlot,
+                status: 'Pendiente',
+                notes: document.getElementById('petNotes').value.trim() || 'Sin observaciones',
+                createdAt: new Date().toISOString()
+            };
+
+            // Immediate local save
+            appointments.unshift(newAppt);
+            saveLocalAppointments(appointments);
+            refreshAllUI();
+
+            if (currentUser && db) {
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'appointments', newAppt.id);
+                    await setDoc(docRef, newAppt);
+                } catch (err) {
+                    console.error("Error saving booking to cloud:", err);
+                }
+            }
+
+            document.getElementById('recCode').innerText = `#${newAppt.id}`;
+            document.getElementById('recOwner').innerText = newAppt.clientName;
+            document.getElementById('recPet').innerText = `${newAppt.petName} (${newAppt.petType})`;
+            document.getElementById('recService').innerText = newAppt.serviceTitle;
+            document.getElementById('recDateTime').innerText = `${newAppt.date} @ ${newAppt.time}`;
+
+            document.getElementById('clientView').classList.add('hidden');
+            document.getElementById('confirmationView').classList.remove('hidden');
+            showToast("¡Cita agendada y registrada!", "success");
+        }
+
+        function resetBookingForm() {
+            document.getElementById('clientName').value = '';
+            document.getElementById('clientPhone').value = '';
+            document.getElementById('clientEmail').value = '';
+            document.getElementById('petName').value = '';
+            document.getElementById('petWeight').value = '';
+            document.getElementById('petAge').value = '';
+            document.getElementById('petNotes').value = '';
+            selectedTimeSlot = '';
+            document.getElementById('selectedTime').value = '';
+
+            goToStep(1);
+            document.getElementById('confirmationView').classList.add('hidden');
+            document.getElementById('clientView').classList.remove('hidden');
+        }
+
+        function downloadCalendarEvent() {
+            const apptCode = document.getElementById('recCode').innerText;
+            const pet = document.getElementById('recPet').innerText;
+
+            const icsContent = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//VetGroom Pro//EN
+BEGIN:VEVENT
+SUMMARY:Peluquería VetGroom Pro - ${pet}
+DESCRIPTION:Cita de Grooming Veterinaria ${apptCode}
+LOCATION:Clínica Veterinaria VetGroom
+STATUS:CONFIRMED
+END:VEVENT
+END:VCALENDAR`;
+
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.setAttribute('download', `Cita_${apptCode}.ics`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("Archivo de calendario descargado", "info");
+        }
+
+        function shareWhatsAppReminder() {
+            const code = document.getElementById('recCode').innerText;
+            const pet = document.getElementById('recPet').innerText;
+            const dt = document.getElementById('recDateTime').innerText;
+            const msg = `¡Hola! Confirmo la cita de peluquería para ${pet} (${code}) el ${dt} en VetGroom Pro.`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+
+        function switchView(view) {
+            const clientV = document.getElementById('clientView');
+            const confirmV = document.getElementById('confirmationView');
+            const adminV = document.getElementById('adminView');
+
+            const btnClient = document.getElementById('viewBtnClient');
+            const btnAdmin = document.getElementById('viewBtnAdmin');
+
+            if (view === 'client') {
+                clientV.classList.remove('hidden');
+                confirmV.classList.add('hidden');
+                adminV.classList.add('hidden');
+
+                btnClient.className = "px-3 py-1.5 text-xs font-semibold rounded-lg transition-all bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm";
+                btnAdmin.className = "px-3 py-1.5 text-xs font-semibold rounded-lg transition-all text-slate-600 dark:text-slate-300 hover:text-emerald-600";
+            } else {
+                clientV.classList.add('hidden');
+                confirmV.classList.add('hidden');
+                adminV.classList.remove('hidden');
+
+                btnAdmin.className = "px-3 py-1.5 text-xs font-semibold rounded-lg transition-all bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm";
+                btnClient.className = "px-3 py-1.5 text-xs font-semibold rounded-lg transition-all text-slate-600 dark:text-slate-300 hover:text-emerald-600";
+
+                if (!isAdminLoggedIn) {
+                    document.getElementById('adminAuthOverlay').classList.remove('hidden');
+                }
+            }
+        }
+
+        function handleAdminLogin(e) {
+            e.preventDefault();
+            const pass = document.getElementById('adminPassword').value;
+            if (pass === 'admin123') {
+                isAdminLoggedIn = true;
+                document.getElementById('adminAuthOverlay').classList.add('hidden');
+                showToast("Acceso de administrador concedido", "success");
+                refreshAllUI();
+            } else {
+                showToast("Contraseña incorrecta (Usa: admin123)", "error");
+            }
+        }
+
+        function logoutAdmin() {
+            isAdminLoggedIn = false;
+            switchView('client');
+            showToast("Sesión administrativa cerrada", "info");
+        }
+
+        function renderKPIs() {
+            const total = appointments.length;
+            const pending = appointments.filter(a => a.status === 'Pendiente').length;
+            const confirmed = appointments.filter(a => a.status === 'Confirmada').length;
+            const revenue = appointments.reduce((sum, a) => a.status !== 'Cancelada' ? sum + a.price : sum, 0);
+
+            document.getElementById('kpiTotalNum').innerText = total;
+            document.getElementById('kpiPendingNum').innerText = pending;
+            document.getElementById('kpiConfirmedNum').innerText = confirmed;
+            document.getElementById('kpiRevenueNum').innerText = `$${revenue.toFixed(2)}`;
+        }
+
+        function renderAdminTable() {
+            const tbody = document.getElementById('adminTableBody');
+            if (!tbody) return;
+            const statusFilter = document.getElementById('filterStatus')?.value || 'ALL';
+            const dateFilter = document.getElementById('filterDate')?.value || '';
+            const searchVal = (document.getElementById('adminSearch')?.value || '').toLowerCase();
+
+            const filtered = appointments.filter(a => {
+                const matchStatus = statusFilter === 'ALL' || a.status === statusFilter;
+                const matchDate = !dateFilter || a.date === dateFilter;
+                const matchSearch = (a.clientName || '').toLowerCase().includes(searchVal) || (a.petName || '').toLowerCase().includes(searchVal) || (a.id || '').toLowerCase().includes(searchVal);
+                return matchStatus && matchDate && matchSearch;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-8 text-slate-400">
+                            <i class="fa-solid fa-folder-open text-2xl mb-2 block"></i> No se encontraron citas con los filtros seleccionados
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(a => {
+                let badgeClass = "bg-slate-100 text-slate-600";
+                if (a.status === 'Pendiente') badgeClass = "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300";
+                if (a.status === 'Confirmada') badgeClass = "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300";
+                if (a.status === 'Completada') badgeClass = "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300";
+                if (a.status === 'Cancelada') badgeClass = "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300";
+
+                return `
+                    <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition">
+                        <td class="p-3.5">
+                            <span class="font-bold text-emerald-600 dark:text-emerald-400 block">#${a.id}</span>
+                            <span class="text-[11px] text-slate-400">${a.date} @ ${a.time}</span>
+                        </td>
+                        <td class="p-3.5">
+                            <span class="font-bold text-slate-800 dark:text-slate-100 block">${a.clientName}</span>
+                            <span class="text-[11px] text-slate-400"><i class="fa-brands fa-whatsapp text-emerald-500 mr-1"></i>${a.clientPhone}</span>
+                        </td>
+                        <td class="p-3.5">
+                            <span class="font-bold text-slate-800 dark:text-slate-100 block">${a.petName} (${a.petType})</span>
+                            <span class="text-[11px] text-slate-400">${a.petWeight} kg • ${a.petAge}</span>
+                        </td>
+                        <td class="p-3.5">
+                            <span class="font-semibold block">${a.serviceTitle}</span>
+                            <span class="font-bold text-emerald-600 dark:text-emerald-400">$${a.price.toFixed(2)}</span>
+                        </td>
+                        <td class="p-3.5">
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold ${badgeClass}">${a.status}</span>
+                        </td>
+                        <td class="p-3.5 text-right space-x-1">
+                            <button onclick="window.changeStatus('${a.id}', 'Confirmada')" title="Confirmar" class="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition"><i class="fa-solid fa-check"></i></button>
+                            <button onclick="window.changeStatus('${a.id}', 'Completada')" title="Marcar Completada" class="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition"><i class="fa-solid fa-check-double"></i></button>
+                            <button onclick="window.changeStatus('${a.id}', 'Cancelada')" title="Cancelar" class="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition"><i class="fa-solid fa-xmark"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function changeStatus(id, newStatus) {
+            const appt = appointments.find(a => a.id === id);
+            if (appt) {
+                appt.status = newStatus;
+                saveLocalAppointments(appointments);
+                refreshAllUI();
+                if (currentUser && db) {
+                    try {
+                        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'appointments', id);
+                        await updateDoc(docRef, { status: newStatus });
+                    } catch (err) {
+                        console.error("Error updating status:", err);
+                    }
+                }
+                showToast(`Cita #${id} marcada como ${newStatus}`, "success");
+            }
+        }
+
+        function clearDateFilter() {
+            const dateEl = document.getElementById('filterDate');
+            if (dateEl) dateEl.value = '';
+            renderAdminTable();
+        }
+
+        function switchAdminTab(tab) {
+            activeAdminTab = tab;
+            document.getElementById('adminTabContentAgenda').classList.toggle('hidden', tab !== 'agenda');
+            document.getElementById('adminTabContentMascotas').classList.toggle('hidden', tab !== 'mascotas');
+            document.getElementById('adminTabContentReportes').classList.toggle('hidden', tab !== 'reportes');
+            document.getElementById('adminTabContentConfig').classList.toggle('hidden', tab !== 'config');
+
+            const btnClassActive = "px-4 py-2 rounded-xl text-xs font-bold transition bg-emerald-600 text-white shadow-md";
+            const btnClassInactive = "px-4 py-2 rounded-xl text-xs font-bold transition text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800";
+
+            document.getElementById('tabAgenda').className = tab === 'agenda' ? btnClassActive : btnClassInactive;
+            document.getElementById('tabMascotas').className = tab === 'mascotas' ? btnClassActive : btnClassInactive;
+            document.getElementById('tabReportes').className = tab === 'reportes' ? btnClassActive : btnClassInactive;
+            document.getElementById('tabConfig').className = tab === 'config' ? btnClassActive : btnClassInactive;
+
+            if (tab === 'reportes') renderAnalyticsCharts();
+            if (tab === 'mascotas') renderPetHistory();
+        }
+
+        function renderPetHistory() {
+            const grid = document.getElementById('petHistoryGrid');
+            if (!grid) return;
+            const petMap = {};
+
+            appointments.forEach(a => {
+                const key = `${a.petName}_${a.clientName}`;
+                if (!petMap[key]) {
+                    petMap[key] = {
+                        petName: a.petName,
+                        petType: a.petType,
+                        clientName: a.clientName,
+                        history: []
+                    };
+                }
+                petMap[key].history.push(a);
+            });
+
+            const keys = Object.keys(petMap);
+            if (keys.length === 0) {
+                grid.innerHTML = `<p class="text-xs text-slate-400 col-span-2">No hay historiales registrados aún.</p>`;
+                return;
+            }
+
+            grid.innerHTML = keys.map(k => {
+                const item = petMap[k];
+                return `
+                    <div class="p-4 bg-slate-50 dark:bg-slate-700/40 rounded-2xl border border-slate-200/60 dark:border-slate-700 space-y-3">
+                        <div class="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-slate-600">
+                            <div>
+                                <h4 class="font-bold text-sm text-slate-800 dark:text-slate-100">${item.petName} (${item.petType})</h4>
+                                <span class="text-xs text-slate-400">Tutor: ${item.clientName}</span>
+                            </div>
+                            <span class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-xs">${item.history.length}</span>
+                        </div>
+                        <div class="space-y-2 max-h-36 overflow-y-auto pr-1">
+                            ${item.history.map(h => `
+                                <div class="text-[11px] bg-white dark:bg-slate-800 p-2 rounded-xl flex justify-between items-center border border-slate-100 dark:border-slate-700">
+                                    <span><strong>${h.date}:</strong> ${h.serviceTitle}</span>
+                                    <span class="text-emerald-600 font-bold">$${h.price.toFixed(2)}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        let chartServicesObj = null;
+        let chartPetsObj = null;
+
+        function renderAnalyticsCharts() {
+            const ctx1 = document.getElementById('chartServices')?.getContext('2d');
+            const ctx2 = document.getElementById('chartPets')?.getContext('2d');
+            if (!ctx1 || !ctx2) return;
+
+            if (chartServicesObj) chartServicesObj.destroy();
+            if (chartPetsObj) chartPetsObj.destroy();
+
+            const serviceCounts = {};
+            appointments.forEach(a => {
+                serviceCounts[a.serviceTitle] = (serviceCounts[a.serviceTitle] || 0) + 1;
+            });
+
+            chartServicesObj = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(serviceCounts),
+                    datasets: [{
+                        label: 'Cantidad de Citas',
+                        data: Object.values(serviceCounts),
+                        backgroundColor: '#22c55e'
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } } }
+            });
+
+            const petCounts = { Perro: 0, Gato: 0, Otro: 0 };
+            appointments.forEach(a => {
+                if (petCounts[a.petType] !== undefined) petCounts[a.petType]++;
+                else petCounts.Otro++;
+            });
+
+            chartPetsObj = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(petCounts),
+                    datasets: [{
+                        data: Object.values(petCounts),
+                        backgroundColor: ['#22c55e', '#3b82f6', '#f59e0b']
+                    }]
+                },
+                options: { responsive: true }
+            });
+        }
+
+        function exportAppointmentsCSV() {
+            if (appointments.length === 0) {
+                showToast("No hay citas para exportar", "error");
+                return;
+            }
+
+            let csv = "ID,Cliente,Telefono,Mascota,Especie,Servicio,Precio,Fecha,Hora,Estado\n";
+            appointments.forEach(a => {
+                csv += `"${a.id}","${a.clientName}","${a.clientPhone}","${a.petName}","${a.petType}","${a.serviceTitle}",${a.price},"${a.date}","${a.time}","${a.status}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', `Agenda_VetGroom_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("Agenda exportada en formato CSV", "success");
+        }
+
+        function downloadJSONBackup() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appointments, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", `Backup_VetGroom_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+            showToast("Respaldo JSON generado", "success");
+        }
+
+        async function restoreDemoData() {
+            for (const demoAppt of DEMO_APPOINTMENTS) {
+                if (!appointments.some(a => a.id === demoAppt.id)) {
+                    appointments.push(demoAppt);
+                }
+            }
+            saveLocalAppointments(appointments);
+            refreshAllUI();
+
+            if (currentUser && db) {
+                await seedInitialDemoData();
+            }
+            showToast("Datos de demostración y cita del lunes cargados", "info");
+        }
+
+        function toggleMode() {
+            document.documentElement.classList.toggle('dark');
+        }
+
+        const translations = {
+            es: {
+                navClient: "Cliente",
+                navAdmin: "Administrador",
+                copyLink: "Copiar Link Citas",
+                heroTitle: "Reserva la Sesión de Grooming para tu Mascota",
+                heroSubtitle: "Atención profesional, baños relajantes y cortes estilizados en minutos.",
+                step1: "Datos",
+                step2: "Servicio",
+                step3: "Horario",
+                step1Header: "Información del Tutor y la Mascota",
+                lblClientName: "Nombre Completo del Tutor *",
+                lblClientPhone: "Teléfono / WhatsApp *",
+                lblClientEmail: "Correo Electrónico (Para confirmación)",
+                lblPetName: "Nombre de la Mascota *",
+                lblPetType: "Especie / Tipo *",
+                lblPetWeight: "Peso aprox. (kg) *",
+                lblPetAge: "Edad de la mascota",
+                lblPetNotes: "Alergias o notas de comportamiento",
+                btnNext: "Siguiente: Seleccionar Servicio",
+                step2Header: "Selecciona el Servicio de Grooming",
+                btnBack: "Atrás",
+                btnNextStep3: "Siguiente: Seleccionar Fecha y Hora",
+                step3Header: "Disponibilidad en Tiempo Real",
+                lblSelectDate: "Selecciona la Fecha *",
+                dateNote: "Horario de atención: Lunes a Sábado (09:00 - 18:00)",
+                lblSelectTime: "Horarios Disponibles *",
+                btnConfirmBooking: "Confirmar y Agendar Cita",
+                confTitle: "¡Cita Confirmada con Éxito!",
+                confSubtitle: "Se ha registrado tu cita en tiempo real en nuestra agenda de peluquería.",
+                confCode: "Código de Reserva:",
+                confOwner: "Tutor:",
+                confPet: "Mascota:",
+                confService: "Servicio:",
+                confDateTime: "Fecha & Hora:",
+                btnAddCalendar: "Añadir a mi Calendario",
+                btnWspReminder: "Recordatorio por WhatsApp",
+                btnNewBooking: "Agendar otra cita",
+                adminLoginTitle: "Acceso Administrativo",
+                adminLoginSubtitle: "Ingrese la clave de administrador para gestionar las citas",
+                btnLogin: "Iniciar Sesión",
+                kpiTotal: "Citas Totales",
+                kpiPending: "Pendientes",
+                kpiConfirmed: "Confirmadas",
+                kpiRevenue: "Ingresos Est.",
+                tabAgenda: "Agenda de Citas",
+                tabMascotas: "Historial de Mascotas",
+                tabReportes: "Reportes",
+                tabConfig: "Respaldo & Nube",
+                btnLogout: "Cerrar Sesión"
+            },
+            en: {
+                navClient: "Client",
+                navAdmin: "Admin",
+                copyLink: "Copy Booking Link",
+                heroTitle: "Book a Grooming Session for Your Pet",
+                heroSubtitle: "Professional care, relaxing baths, and stylish cuts in minutes.",
+                step1: "Details",
+                step2: "Service",
+                step3: "Schedule",
+                step1Header: "Owner & Pet Information",
+                lblClientName: "Owner Full Name *",
+                lblClientPhone: "Phone / WhatsApp *",
+                lblClientEmail: "Email (For confirmation)",
+                lblPetName: "Pet Name *",
+                lblPetType: "Species / Type *",
+                lblPetWeight: "Approx. Weight (kg) *",
+                lblPetAge: "Pet Age",
+                lblPetNotes: "Allergies or behavioral notes",
+                btnNext: "Next: Select Service",
+                step2Header: "Select Grooming Service",
+                btnBack: "Back",
+                btnNextStep3: "Next: Select Date & Time",
+                step3Header: "Real-time Availability",
+                lblSelectDate: "Select Date *",
+                dateNote: "Working hours: Mon - Sat (09:00 - 18:00)",
+                lblSelectTime: "Available Slots *",
+                btnConfirmBooking: "Confirm & Book Appointment",
+                confTitle: "Appointment Confirmed Successfully!",
+                confSubtitle: "Your appointment has been registered in real time in our schedule.",
+                confCode: "Booking Code:",
+                confOwner: "Owner:",
+                confPet: "Pet:",
+                confService: "Service:",
+                confDateTime: "Date & Time:",
+                btnAddCalendar: "Add to Calendar",
+                btnWspReminder: "WhatsApp Reminder",
+                btnNewBooking: "Book another appointment",
+                adminLoginTitle: "Admin Access",
+                adminLoginSubtitle: "Enter administrator password to manage appointments",
+                btnLogin: "Log In",
+                kpiTotal: "Total Bookings",
+                kpiPending: "Pending",
+                kpiConfirmed: "Confirmed",
+                kpiRevenue: "Est. Revenue",
+                tabAgenda: "Appointments",
+                tabMascotas: "Pet History",
+                tabReportes: "Reports",
+                tabConfig: "Backup & Cloud",
+                btnLogout: "Log Out"
+            }
+        };
+
+        function changeLanguage(lang) {
+            currentLang = lang;
+            const dict = translations[lang] || translations.es;
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (dict[key]) {
+                    el.innerText = dict[key];
+                }
+            });
+        }
+
+        function showToast(message, type = "info") {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+
+            let bg = "bg-slate-800 text-white";
+            let icon = "fa-circle-info text-blue-400";
+            if (type === "success") { bg = "bg-emerald-900 text-white border border-emerald-700"; icon = "fa-circle-check text-emerald-400"; }
+            if (type === "error") { bg = "bg-red-900 text-white border border-red-700"; icon = "fa-circle-exclamation text-red-400"; }
+
+            toast.className = `px-4 py-3 rounded-2xl shadow-xl text-xs font-semibold flex items-center gap-2.5 transform transition-all duration-300 translate-y-2 opacity-0 pointer-events-auto max-w-sm ${bg}`;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-base"></i><span>${message}</span>`;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        window.changeLanguage = changeLanguage;
+        window.switchView = switchView;
+        window.toggleMode = toggleMode;
+        window.copyClientLink = copyClientLink;
+        window.goToStep = goToStep;
+        window.selectService = selectService;
+        window.updateTimeSlots = updateTimeSlots;
+        window.selectTime = selectTime;
+        window.handleBookingSubmit = handleBookingSubmit;
+        window.resetBookingForm = resetBookingForm;
+        window.downloadCalendarEvent = downloadCalendarEvent;
+        window.shareWhatsAppReminder = shareWhatsAppReminder;
+        window.handleAdminLogin = handleAdminLogin;
+        window.logoutAdmin = logoutAdmin;
+        window.exportAppointmentsCSV = exportAppointmentsCSV;
+        window.switchAdminTab = switchAdminTab;
+        window.renderAdminTable = renderAdminTable;
+        window.clearDateFilter = clearDateFilter;
+        window.renderPetHistory = renderPetHistory;
+        window.downloadJSONBackup = downloadJSONBackup;
+        window.restoreDemoData = restoreDemoData;
+        window.changeStatus = changeStatus;
+        window.showToast = showToast;
+        window.forceCloudSync = forceCloudSync;
+        window.openCloudModal = openCloudModal;
+        window.closeCloudModal = closeCloudModal;
+        window.updateBusinessId = updateBusinessId;
+
+        // Startup Initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            setupMinDate();
+            renderServiceCards();
+            initCloudAuthAndSync();
+        });
+    </script>
+</body>
+</html>
