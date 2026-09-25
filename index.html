@@ -636,20 +636,23 @@
         localStorage.setItem('vetgroom_business_id', appId);
 
         // Firebase Configuration Setup
-        const isExternalDevice = typeof __firebase_config === 'undefined';
-        const firebaseConfig = !isExternalDevice ? JSON.parse(__firebase_config) : {
-            apiKey: "demo-api-key",
-            authDomain: "demo-app.firebaseapp.com",
-            projectId: "demo-app",
-            storageBucket: "demo-app.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:demo"
-        };
+const firebaseConfig = {
+  apiKey: "AIzaSyAsqOmn02TL9sq1_UKhnFGHOo6hlHWZ-2k",
+  authDomain: "vetgroom-pro.firebaseapp.com",
+  databaseURL: "https://vetgroom-pro-default-rtdb.firebaseio.com",
+  projectId: "vetgroom-pro",
+  storageBucket: "vetgroom-pro.firebasestorage.app",
+  messagingSenderId: "232678135329",
+  appId: "1:232678135329:web:947f0a055eab3392c4b560"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
         let app = null;
         let auth = null;
         let db = null;
-        let isFirebaseAvailable = false;
+        let isFirebaseAvailable = true;
 
         try {
             app = initializeApp(firebaseConfig);
